@@ -2,7 +2,11 @@
 FROM php:8.2-apache
 
 # System deps
-RUN apt-get update && apt-get install -y     git unzip libpq-dev libzip-dev libonig-dev libicu-dev libxml2-dev     && docker-php-ext-install pdo pdo_mysql pdo_pgsql intl zip
+RUN apt-get update && apt-get install -y \
+    git unzip libpq-dev libzip-dev libonig-dev libicu-dev libxml2-dev \
+    libfreetype6-dev libjpeg62-turbo-dev libpng-dev libwebp-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
+    && docker-php-ext-install pdo pdo_mysql pdo_pgsql intl zip gd
 
 # Apache config
 RUN a2enmod rewrite
@@ -11,13 +15,14 @@ RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-av
 
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+ENV COMPOSER_ALLOW_SUPERUSER=1
 
 WORKDIR /var/www/html
 
 # Create Laravel project
 RUN composer create-project laravel/laravel . --no-interaction --prefer-dist
 
-# Install packages
+# Install packages (now GD is available)
 RUN composer require laravel/sanctum stripe/stripe-php barryvdh/laravel-dompdf simplesoftwareio/simple-qrcode
 
 # Copy overlay (routes, controllers, models, migrations, config)
