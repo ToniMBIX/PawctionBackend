@@ -1,6 +1,15 @@
 <?php
 namespace App\Models;
-use Illuminate\Database\Eloquent\Model; use Illuminate\Database\Eloquent\Factories\HasFactory;
-class Auction extends Model{ use HasFactory; public $incrementing=false; protected $keyType='string';
-protected $fillable=['id','animal_id','title','base_price','current_price','min_increment','ends_at','status'];
-protected $casts=['ends_at'=>'integer']; public function animal(){ return $this->belongsTo(Animal::class); } public function bids(){ return $this->hasMany(Bid::class)->orderByDesc('created_at'); } }
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class Auction extends Model {
+    use HasFactory;
+    protected $fillable = ['title','description','image_url','starting_price','current_price','ends_at','animal_name','animal_info_url','qr_path','winner_user_id'];
+    protected $casts = ['ends_at' => 'datetime'];
+
+    public function bids(): HasMany { return $this->hasMany(Bid::class); }
+    public function favorites(): HasMany { return $this->hasMany(Favorite::class); }
+}

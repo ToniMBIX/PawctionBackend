@@ -1,16 +1,18 @@
 <?php
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\{AuctionController,BidController,OrderController,PaymentController,PaymentProController};
+use App\Http\Controllers\{AuthController,AuctionController};
 
-Route::get('/health', fn() => ['ok'=>true]);
+Route::get('/health', [AuctionController::class, 'health']);
+
+Route::post('/auth/login', [AuthController::class, 'login']);
+Route::post('/auth/register', [AuthController::class, 'register']);
 
 Route::get('/auctions', [AuctionController::class, 'index']);
-Route::get('/auctions/{id}', [AuctionController::class, 'show']);
-Route::post('/auctions/{id}/bids', [BidController::class, 'store']);
-Route::post('/orders', [OrderController::class, 'store']);
+Route::get('/auctions/{auction}', [AuctionController::class, 'show']);
 
-Route::post('/payments/stripe/checkout', [PaymentController::class, 'createStripeCheckout']);
-Route::post('/payments/stripe/webhook', [PaymentController::class, 'stripeWebhook']);
-
-Route::post('/payments/paypal/create', [PaymentProController::class, 'createPayPal']);
-Route::post('/payments/paypal/capture', [PaymentProController::class, 'capturePayPal']);
+Route::middleware('auth:sanctum')->group(function() {
+    Route::post('/auctions/{auction}/bids', [AuctionController::class, 'bid']);
+    Route::post('/auctions/{auction}/favorite', [AuctionController::class, 'favorite']);
+    Route::get('/me/favorites', [AuctionController::class, 'myFavorites']);
+    Route::post('/auctions/{auction}/checkout', [AuctionController::class, 'checkout']);
+});
