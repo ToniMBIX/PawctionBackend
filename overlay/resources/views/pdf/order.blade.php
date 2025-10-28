@@ -1,0 +1,1 @@
+<!doctype html><html><head><meta charset="utf-8"/></head><body><h2>Pawction — Pedido</h2><p>Pedido: {{ $order->id }}</p></body></html>

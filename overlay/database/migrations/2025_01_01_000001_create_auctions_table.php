@@ -1,0 +1,3 @@
+<?php
+use Illuminate\Database\Migrations\Migration; use Illuminate\Database\Schema\Blueprint; use Illuminate\Support\Facades\Schema;
+return new class extends Migration{ public function up(): void{ Schema::create('auctions',function(Blueprint $t){ $t->string('id')->primary(); $t->string('animal_id'); $t->string('title'); $t->decimal('base_price',10,2); $t->decimal('current_price',10,2); $t->decimal('min_increment',10,2); $t->unsignedBigInteger('ends_at'); $t->enum('status',['active','ended','sold'])->default('active'); $t->timestamps(); }); } public function down(): void{ Schema::dropIfExists('auctions'); } };
