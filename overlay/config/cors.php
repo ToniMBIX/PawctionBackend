@@ -4,14 +4,14 @@ return [
     'paths' => ['api/*', 'sanctum/csrf-cookie'],
     'allowed_methods' => ['*'],
 
-    // Déjalo vacío si usarás patrones:
+    // Deja 'allowed_origins' vacío y usa patrones:
     'allowed_origins' => [],
 
-    // ✅ Patrones que cubren producción + previews de Vercel
+    // ✅ Producción + previews de tu scope en Vercel
     'allowed_origins_patterns' => [
-        '^https:\/\/pawction-frontend\.vercel\.app$',                                // prod
-        '^https:\/\/pawction-frontend-git-[a-z0-9-]+-tonimbixs-projects\.vercel\.app$', // previews "git-..."
-        '^https:\/\/pawction-frontend-[a-z0-9-]+-tonimbixs-projects\.vercel\.app$',     // previews con hash (p.ej. khferg1f5-...)
+        '^https:\/\/pawction-frontend\.vercel\.app$',                                   // prod
+        '^https:\/\/pawction-frontend-git-[a-z0-9-]+-tonimbixs-projects\.vercel\.app$', // previews tipo "git-..."
+        '^https:\/\/pawction-frontend-[a-z0-9-]+-tonimbixs-projects\.vercel\.app$',     // previews con hash (dmafbt2qs, etc.)
     ],
 
     'allowed_headers' => ['*'],
