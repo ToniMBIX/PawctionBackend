@@ -1,62 +1,55 @@
-#!/bin/sh
+#!/usr/bin/env bash
 set -e
 cd /var/www/html
 
-# 1) Hacer que Apache escuche en $PORT (que define Railway)
-if [ -n "${PORT}" ]; then
-  sed -i "s/Listen .*/Listen ${PORT}/g" /etc/apache2/ports.conf || true
-fi
-
-# 2) Asegurar .env y APP_KEY
+# .env
 if [ ! -f .env ]; then
   cp .env.example .env || true
 fi
+
 php artisan key:generate --force || true
 
-# 3) Escribir .env a partir de variables de Railway (incl. DATABASE_URL)
+# Monta .env desde variables de Railway (MySQL o Postgres)
 php -r '
 $env = file_get_contents(".env");
-$put = function($k,$v) use (&$env){
-  $line="$k=$v";
-  if (preg_match("/^{$k}=.*/m",$env)) { $env = preg_replace("/^{$k}=.*/m",$line,$env); }
-  else { $env .= "\n".$line; }
+$set = function($k,$v) use (&$env) {
+  $line = "{$k}={$v}";
+  if (preg_match("/^{$k}=.*/m", $env)) { $env = preg_replace("/^{$k}=.*/m", $line, $env); }
+  else { $env .= "\n".$line."\n"; }
 };
-$put("APP_ENV","production");
-$host = getenv("RAILWAY_PUBLIC_DOMAIN");
-$put("APP_URL", $host ? ("https://".$host) : (getenv("APP_URL")?: "http://localhost"));
-$fe = getenv("FRONTEND_URL") ?: "";
-if ($fe) $put("FRONTEND_URL", $fe);
-$put("SESSION_DRIVER","file");
+$set("APP_ENV","production");
+$set("APP_URL", getenv("APP_URL") ?: "https://railway.app");
+$set("FRONTEND_URL", getenv("FRONTEND_URL") ?: "https://example.vercel.app");
+$set("SESSION_DRIVER","file");
+$set("LOG_LEVEL","info");
 
-$dbUrl = getenv("DATABASE_URL") ?: "";
-if ($dbUrl) {
-  $parts = parse_url($dbUrl);
-  $scheme = $parts["scheme"] ?? "";
-  $host = $parts["host"] ?? "";
-  $port = $parts["port"] ?? "";
-  $user = $parts["user"] ?? "";
-  $pass = $parts["pass"] ?? "";
-  $db   = isset($parts["path"]) ? ltrim($parts["path"],"/") : "";
-  if ($scheme === "postgres" || $scheme === "postgresql") {
-    $put("DB_CONNECTION","pgsql");
-    $put("DB_HOST",$host); $put("DB_PORT",$port?:5432); $put("DB_DATABASE",$db); $put("DB_USERNAME",$user); $put("DB_PASSWORD",$pass);
-  } else {
-    $put("DB_CONNECTION","mysql");
-    $put("DB_HOST",$host); $put("DB_PORT",$port?:3306); $put("DB_DATABASE",$db); $put("DB_USERNAME",$user); $put("DB_PASSWORD",$pass);
-  }
+# Si Railway te da PG*, usamos PG. Si no, MySQL con MYSQL*
+if (getenv("DB_CONNECTION")==="pgsql" || getenv("PGHOST")) {
+  $set("DB_CONNECTION","pgsql");
+  $set("DB_HOST", getenv("PGHOST") ?: "localhost");
+  $set("DB_PORT", getenv("PGPORT") ?: "5432");
+  $set("DB_DATABASE", getenv("PGDATABASE") ?: "pawction");
+  $set("DB_USERNAME", getenv("PGUSER") ?: "pawction");
+  $set("DB_PASSWORD", getenv("PGPASSWORD") ?: "secret");
+} else {
+  $set("DB_CONNECTION","mysql");
+  $set("DB_HOST", getenv("MYSQLHOST") ?: "localhost");
+  $set("DB_PORT", getenv("MYSQLPORT") ?: "3306");
+  $set("DB_DATABASE", getenv("MYSQLDATABASE") ?: "pawction");
+  $set("DB_USERNAME", getenv("MYSQLUSER") ?: "pawction");
+  $set("DB_PASSWORD", getenv("MYSQLPASSWORD") ?: "secret");
 }
 
-$put("STRIPE_SECRET", getenv("STRIPE_SECRET") ?: "");
-$put("STRIPE_PUBLIC", getenv("STRIPE_PUBLIC") ?: "");
-$put("STRIPE_WEBHOOK_SECRET", getenv("STRIPE_WEBHOOK_SECRET") ?: "");
-$put("PAYPAL_MODE", getenv("PAYPAL_MODE") ?: "sandbox");
-$put("PAYPAL_CLIENT_ID", getenv("PAYPAL_CLIENT_ID") ?: "");
-$put("PAYPAL_SECRET", getenv("PAYPAL_SECRET") ?: "");
+$set("STRIPE_SECRET", getenv("STRIPE_SECRET") ?: "");
+$set("STRIPE_PUBLIC", getenv("STRIPE_PUBLIC") ?: "");
+$set("STRIPE_WEBHOOK_SECRET", getenv("STRIPE_WEBHOOK_SECRET") ?: "");
+$set("PAYPAL_MODE", getenv("PAYPAL_MODE") ?: "sandbox");
+$set("PAYPAL_CLIENT_ID", getenv("PAYPAL_CLIENT_ID") ?: "");
+$set("PAYPAL_SECRET", getenv("PAYPAL_SECRET") ?: "");
 
-file_put_contents(".env",$env);
+file_put_contents(".env", $env);
 '
 
-# 4) Optimizar y migrar/sembrar
 php artisan config:clear || true
 php artisan cache:clear || true
 php artisan migrate --force || true
